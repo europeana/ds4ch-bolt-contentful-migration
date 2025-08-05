@@ -31,13 +31,15 @@ export const createOne = async (id) => {
   entry.site = "dataspace-culturalheritage.eu";
   for (const authorId of coreField.authors || []) {
     const sysId = PersonEntry.sysIdFromMysqlId(authorId);
+    pad.log(`- looking up person entry for author [ID=${authorId}]`);
 
     try {
       const personEntry = await contentfulPreviewClient.getEntry(sysId);
+      pad.log(`  found: ${personEntry.fields.name}`);
       entry.author.push(sysId);
     } catch (e) {
       if (e.message === 'The resource could not be found.') {
-        pad.log(`  [WARN] no person content entry found for author [ID=${authorId}]`);
+        pad.log(`  [WARN] not found`);
       } else {
         throw e;
       }
