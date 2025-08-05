@@ -10,6 +10,9 @@ import { PersonEntry } from "../models/PersonEntry.js";
 import { ImageWithAttributionEntry } from "../models/ImageWithAttributionEntry.js";
 import { loadOrCreateAssetForImage } from "../attachments.js";
 
+const categoryEntries = {};
+const personEntries = {};
+
 export const createOne = async (id) => {
   const post = await fetchOneContentEntry(id, "posts");
 
@@ -29,22 +32,52 @@ export const createOne = async (id) => {
   entry.identifier = coreField.slug?.[0];
   entry.datePublished = post.published_at;
   entry.site = "dataspace-culturalheritage.eu";
+
   for (const authorId of coreField.authors || []) {
     const sysId = PersonEntry.sysIdFromMysqlId(authorId);
     pad.log(`- looking up person entry for author [ID=${authorId}]`);
 
     try {
       const personEntry = await contentfulPreviewClient.getEntry(sysId);
-      pad.log(`  found: ${personEntry.fields.name}`);
-      entry.author.push(sysId);
+      personEntries[authorId] = personEntry;
     } catch (e) {
       if (e.message === 'The resource could not be found.') {
-        pad.log(`  [WARN] not found`);
+        // couldn't find it; nevermind
       } else {
         throw e;
       }
     }
+
+    if (personEntries[authorId]) {
+      pad.log(`  found: ${personEntries[authorId].fields.name}`);
+      entry.author.push(personEntries[authorId].sys.id);
+    } else {
+      pad.log(`  [WARN] not found`);
+    }
   };
+
+  for (const tagSlug of post.taxonomy?.tags || []) {
+    pad.log(`- looking up category entry for tag "${tagSlug}"`);
+
+    if (!categoryEntries[tagSlug]) {
+      const categoryEntryResponse = await contentfulPreviewClient.getEntries({
+        content_type: 'category',
+        'fields.identifier': tagSlug
+      });
+
+      if (categoryEntryResponse.total > 0) {
+        // memoised to prevent duplicate lookups
+        categoryEntries[tagSlug] = categoryEntryResponse.items[0];
+      }
+    }
+
+    if (categoryEntries[tagSlug]) {
+      pad.log(`  found: ${categoryEntries[tagSlug].fields.name}`);
+      entry.categories.push(categoryEntries[tagSlug].sys.id);
+    } else {
+      pad.log(`  [WARN] not found`);
+    }
+  }
 
   // NOTE: the intro may have had formatting via html, which is lost here
   if (coreField.intro?.[0]) {
@@ -265,10 +298,10 @@ const fetchOneContentEntry = async (id, contentType) => {
         group by content_id
       ) fields,
       (
-        select JSON_OBJECTAGG(type, names) from
+        select JSON_OBJECTAGG(type, slugs) from
         (
           select
-            c.id, t.type, JSON_ARRAYAGG(t.name) names
+            c.id, t.type, JSON_ARRAYAGG(t.slug) slugs
 
           from
             bolt_taxonomy_content tc
@@ -276,7 +309,7 @@ const fetchOneContentEntry = async (id, contentType) => {
 
           where
             c.id=tc.content_id
-            and t.name <> ''
+            and t.slug <> ''
 
           group by c.id, t.type
         ) content_taxonomies
