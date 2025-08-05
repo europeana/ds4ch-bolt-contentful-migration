@@ -1,6 +1,10 @@
 import * as cheerio from "cheerio";
 
-import { mysqlClient, contentfulManagement, contentfulPreviewClient } from "../config.js";
+import {
+  mysqlClient,
+  contentfulManagement,
+  contentfulPreviewClient,
+} from "../config.js";
 import { pad, rightsFromAbbreviation, rightsFromTitle } from "../utils.js";
 import { BlogPostingEntry } from "../models/BlogPostingEntry.js";
 import { RichTextEntry } from "../models/RichTextEntry.js";
@@ -41,7 +45,7 @@ export const createOne = async (id) => {
       const personEntry = await contentfulPreviewClient.getEntry(sysId);
       personEntries[authorId] = personEntry;
     } catch (e) {
-      if (e.message === 'The resource could not be found.') {
+      if (e.message === "The resource could not be found.") {
         // couldn't find it; nevermind
       } else {
         throw e;
@@ -54,15 +58,15 @@ export const createOne = async (id) => {
     } else {
       pad.log(`  [WARN] not found`);
     }
-  };
+  }
 
   for (const tagSlug of post.taxonomy?.tags || []) {
     pad.log(`- looking up category entry for tag "${tagSlug}"`);
 
     if (!categoryEntries[tagSlug]) {
       const categoryEntryResponse = await contentfulPreviewClient.getEntries({
-        content_type: 'category',
-        'fields.identifier': tagSlug
+        content_type: "category",
+        "fields.identifier": tagSlug,
       });
 
       if (categoryEntryResponse.total > 0) {
@@ -234,7 +238,7 @@ const createImageWithAttribution = async (
   const imageTitle = attribution.title?.[0] || image.title || image.alt;
   const imageRights =
     rightsFromAbbreviation(attribution.license?.[0]?.trim()) ||
-      // TODO: rm from title if found here?
+    // TODO: rm from title if found here?
     rightsFromTitle(imageTitle.trim()) ||
     attribution.license;
 

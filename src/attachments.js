@@ -1,9 +1,6 @@
 import axios from "axios";
 
-import {
-  contentfulManagement,
-  contentfulPreviewClient,
-} from "./config.js";
+import { contentfulManagement, contentfulPreviewClient } from "./config.js";
 import { LangMap, pad, hashedSysId } from "./utils.js";
 
 const fileUrl = (fileName) => {

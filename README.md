@@ -6,6 +6,7 @@ to Contentful `blogPosting` content type.
 ## Installation
 
 Install dependencies with:
+
 ```sh
 pnpm install
 ```
@@ -20,6 +21,7 @@ with the configuration for MySQL and Contentful.
 ### 1. Authors
 
 First, authors need to be migrated:
+
 ```sh
 pnpm migrate authors
 ```
@@ -30,6 +32,7 @@ them.
 ### 2. Posts
 
 Second, posts need to be migrated:
+
 ```sh
 pnpm migrate posts
 ```
