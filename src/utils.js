@@ -79,7 +79,7 @@ export const rightsFromAbbreviation = (abbr) => rightsAbbreviationDefinitions
 export const rightsFromTitle = (title) => {
   // count how many different rights statement abbreviations occur
   const rightsInTitle = rightsAbbreviationDefinitions.reduce((memo, def) => {
-    if (def.abbr.some((abbr) => new RegExp(`(^| )${abbr}[., $]`).test(title))) {
+    if (def.abbr.some((abbr) => new RegExp(`(^| )${abbr}([., ]|$)`).test(title))) {
       memo.push(def.rights);
     }
     return memo;
