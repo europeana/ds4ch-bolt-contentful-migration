@@ -68,6 +68,10 @@ const rightsAbbreviationDefinitions = [
     rights: "http://creativecommons.org/publicdomain/mark/1.0/"
   },
   {
+    abbr: ["Copyright not evaluated"],
+    rights: "http://rightsstatements.org/vocab/CNE/1.0/"
+  },
+  {
     abbr: ["In Copyright", "In copyright", "in copyright", "©"],
     rights: "http://rightsstatements.org/vocab/InC/1.0/"
   }
@@ -79,7 +83,7 @@ export const rightsFromAbbreviation = (abbr) => rightsAbbreviationDefinitions
 export const rightsFromTitle = (title) => {
   // count how many different rights statement abbreviations occur
   const rightsInTitle = rightsAbbreviationDefinitions.reduce((memo, def) => {
-    if (def.abbr.some((abbr) => new RegExp(`(^| )${abbr}([., ]|$)`).test(title))) {
+    if (def.abbr.some((abbr) => new RegExp(`(^|[( ])${abbr}([., )]|$)`).test(title)).test(title))) {
       memo.push(def.rights);
     }
     return memo;
