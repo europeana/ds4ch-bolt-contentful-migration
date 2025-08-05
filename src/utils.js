@@ -34,36 +34,59 @@ export class LangMap {
   }
 }
 
-export const rightsFromAbbreviation = (abbr) => {
-  let rights;
-
-  switch (abbr?.trim()) {
-    case "CC0":
-      rights = "http://creativecommons.org/publicdomain/zero/1.0/";
-      break;
-    case "CC-BY":
-      rights = "http://creativecommons.org/licenses/by/4.0/";
-      break;
-    case "CC-BY-NC":
-      rights = "http://creativecommons.org/licenses/by-nc/4.0/";
-      break;
-    case "CC-BY-NC-SA":
-      rights = "http://creativecommons.org/licenses/by-nc-sa/4.0/";
-      break;
-    case "CC-BY-SA":
-      rights = "http://creativecommons.org/licenses/by-sa/4.0/";
-      break;
-    case "Public-Domain":
-      rights = "http://creativecommons.org/publicdomain/mark/1.0/";
-      break;
-    case "In Copyright":
-    case "In copyright":
-      rights = "http://rightsstatements.org/vocab/InC/1.0/";
-      break;
-    default:
-      rights = null;
-      break;
+const rightsAbbreviationDefinitions = [
+  {
+    abbr: ["CC0"],
+    rights: "http://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  {
+    abbr: ["CC-BY"],
+    rights: "http://creativecommons.org/licenses/by/4.0/"
+  },
+  {
+    abbr: ["CC-BY-NC", "CC BY-NC"],
+    rights: "http://creativecommons.org/licenses/by-nc/4.0/"
+  },
+  {
+    abbr: ['CC-BY-NC-ND', "CC BY-NC-ND"],
+    rights: 'http://creativecommons.org/licenses/by-nc-nd/4.0/'
+  },
+  {
+    abbr: ["CC-BY-NC-SA", "CC BY-NC-SA"],
+    rights: "http://creativecommons.org/licenses/by-nc-sa/4.0/"
+  },
+  {
+    abbr: ["CC-BY-ND", "CC BY-ND"],
+    rights: 'http://creativecommons.org/licenses/by-nd/4.0/'
+  },
+  {
+    abbr: ["CC-BY-SA", "CC BY-SA"],
+    rights: "http://creativecommons.org/licenses/by-sa/4.0/"
+  },
+  {
+    abbr: ["Public-Domain", "Public Domain", "public domain"],
+    rights: "http://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  {
+    abbr: ["In Copyright", "In copyright", "in copyright", "©"],
+    rights: "http://rightsstatements.org/vocab/InC/1.0/"
   }
+];
 
-  return rights;
+export const rightsFromAbbreviation = (abbr) => rightsAbbreviationDefinitions
+  .find((def) => def.abbr.includes(abbr))?.rights;
+
+export const rightsFromTitle = (title) => {
+  // count how many different rights statement abbreviations occur
+  const rightsInTitle = rightsAbbreviationDefinitions.reduce((memo, def) => {
+    if (def.abbr.some((abbr) => new RegExp(`(^| )${abbr}[., $]`).test(title))) {
+      memo.push(def.rights);
+    }
+    return memo;
+  }, []);
+
+  // if only one, infer that it is the one to apply; else too ambiguous
+  if (rightsInTitle.length === 1) {
+    return rightsInTitle[0];
+  }
 };

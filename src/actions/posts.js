@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 
 import { mysqlClient, contentfulManagement, contentfulPreviewClient } from "../config.js";
-import { pad, rightsFromAbbreviation } from "../utils.js";
+import { pad, rightsFromAbbreviation, rightsFromTitle } from "../utils.js";
 import { BlogPostingEntry } from "../models/BlogPostingEntry.js";
 import { RichTextEntry } from "../models/RichTextEntry.js";
 import { EmbedEntry } from "../models/EmbedEntry.js";
@@ -200,11 +200,9 @@ const createImageWithAttribution = async (
 
   const imageTitle = attribution.title?.[0] || image.title || image.alt;
   const imageRights =
-    rightsFromAbbreviation(attribution.license?.[0]) ||
-    // TODO: rm from title if found here?
-    rightsFromAbbreviation(
-      imageTitle?.trim()?.split(".")?.filter(Boolean)?.slice(-1)?.[0],
-    ) ||
+    rightsFromAbbreviation(attribution.license?.[0]?.trim()) ||
+      // TODO: rm from title if found here?
+    rightsFromTitle(imageTitle.trim()) ||
     attribution.license;
 
   const asset = await loadOrCreateAssetForImage(filename, imageTitle);
