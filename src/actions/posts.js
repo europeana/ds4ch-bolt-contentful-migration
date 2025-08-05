@@ -37,7 +37,7 @@ export const createOne = async (id) => {
       entry.author.push(sysId);
     } catch (e) {
       if (e.message === 'The resource could not be found.') {
-        pad.log("  [WARN] no person content entry found for author [ID=${authorId}]");
+        pad.log(`  [WARN] no person content entry found for author [ID=${authorId}]`);
       } else {
         throw e;
       }
