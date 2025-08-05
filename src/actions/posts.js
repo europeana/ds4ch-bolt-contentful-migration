@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 
-import { mysqlClient, contentfulManagement } from "../config.js";
+import { mysqlClient, contentfulManagement, contentfulPreviewClient } from "../config.js";
 import { pad, rightsFromAbbreviation } from "../utils.js";
 import { BlogPostingEntry } from "../models/BlogPostingEntry.js";
 import { RichTextEntry } from "../models/RichTextEntry.js";
@@ -29,9 +29,20 @@ export const createOne = async (id) => {
   entry.identifier = coreField.slug?.[0];
   entry.datePublished = post.published_at;
   entry.site = "dataspace-culturalheritage.eu";
-  entry.author = (coreField.authors || []).map((authorId) =>
-    PersonEntry.sysIdFromMysqlId(authorId),
-  );
+  for (const authorId of coreField.authors || []) {
+    const sysId = PersonEntry.sysIdFromMysqlId(authorId);
+
+    try {
+      const personEntry = await contentfulPreviewClient.getEntry(sysId);
+      entry.author.push(sysId);
+    } catch (e) {
+      if (e.message === 'The resource could not be found.') {
+        pad.log("  [WARN] no person content entry found for author [ID=${authorId}]");
+      } else {
+        throw e;
+      }
+    }
+  };
 
   // NOTE: the intro may have had formatting via html, which is lost here
   if (coreField.intro?.[0]) {
@@ -226,15 +237,6 @@ const fetchOneContentEntry = async (id, contentType) => {
       c.id content_id,
       c.title,
       c.published_at,
-      (
-        select
-          u.display_name
-
-        from
-          bolt_user u
-
-        where c.author_id=u.id
-      ) author,
       (
         select JSON_ARRAYAGG(fields) from
         (
