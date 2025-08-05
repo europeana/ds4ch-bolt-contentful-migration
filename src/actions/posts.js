@@ -203,7 +203,7 @@ const createImageWithAttribution = async (
     rightsFromAbbreviation(attribution.license?.[0]) ||
     // TODO: rm from title if found here?
     rightsFromAbbreviation(
-      imageTitle?.trim()?.split(".")?.filter(Boolean)?.slice(-1)?.[0],
+      imageTitle?.trim()?.split(/[,\.]/)?.filter(Boolean)?.slice(-1)?.[0],
     ) ||
     attribution.license;
 
