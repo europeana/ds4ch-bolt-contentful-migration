@@ -75,6 +75,7 @@ export const createOne = async (id) => {
       }
     }
 
+    // TODO: use object.keys, and store even when the response was empty; same for authors
     if (categoryEntries[tagSlug]) {
       pad.log(`  found: ${categoryEntries[tagSlug].fields.name}`);
       entry.categories.push(categoryEntries[tagSlug].sys.id);
@@ -117,7 +118,7 @@ export const createAll = async () => {
       and published_at is not null
     order by
       published_at desc
-      limit 500
+    limit 500
   `);
   const count = result[0].length;
   let i = 0;
@@ -239,7 +240,7 @@ const createImageWithAttribution = async (
   const imageRights =
     rightsFromAbbreviation(attribution.license?.[0]?.trim()) ||
     // TODO: rm from title if found here?
-    rightsFromTitle(imageTitle.trim()) ||
+    rightsFromTitle(imageTitle?.trim()) ||
     attribution.license;
 
   const asset = await loadOrCreateAssetForImage(filename, imageTitle);
