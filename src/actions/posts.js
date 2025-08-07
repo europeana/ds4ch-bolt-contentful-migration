@@ -127,6 +127,16 @@ export const createAll = async () => {
               inner join bolt_field_translation ft on f.id=ft.translatable_id
             where
               f.content_id=c.id
+              and f.name='posttype'
+          ) posttype,
+          (
+            select
+              JSON_EXTRACT(ft.value, '$[0]')
+            from
+              bolt_field f
+              inner join bolt_field_translation ft on f.id=ft.translatable_id
+            where
+              f.content_id=c.id
               and f.name='subsite'
           ) subsite
         from
