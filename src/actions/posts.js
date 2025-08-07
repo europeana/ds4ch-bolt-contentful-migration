@@ -110,15 +110,32 @@ export const createOne = async (id) => {
 export const createAll = async () => {
   const result = await mysqlClient.connection.execute(`
     select
-      id
+      *
     from
-      bolt_content
+      (
+        select
+          c.id,
+          (
+            select
+              JSON_EXTRACT(ft.value, '$[0]')
+            from
+              bolt_field f
+              inner join bolt_field_translation ft on f.id=ft.translatable_id
+            where
+              f.content_id=c.id
+              and f.name='subsite'
+          ) subsite
+        from
+          bolt_content c
+        where
+          content_type='posts'
+          and published_at is not null
+        order by
+          published_at desc
+      ) content
     where
-      content_type='posts'
-      and published_at is not null
-    order by
-      published_at desc
-    limit 500
+      subsite is null
+      or subsite='pro'
   `);
   const count = result[0].length;
   let i = 0;
