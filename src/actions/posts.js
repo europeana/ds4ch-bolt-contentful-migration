@@ -84,9 +84,13 @@ export const createOne = async (id) => {
     }
   }
 
-  // NOTE: the intro may have had formatting via html, which is lost here
+  // NOTE: the teaser may have had formatting via html, which is removed here
+  if (coreField.teaser?.[0]) {
+    entry.description = cheerio.load(coreField.teaser[0]).text();
+  }
+
   if (coreField.intro?.[0]) {
-    entry.description = cheerio.load(coreField.intro[0]).text();
+    entry.introduction = coreField.intro[0];
   }
 
   entry.primaryImageOfPage = await createImageWithAttribution(
@@ -134,8 +138,7 @@ export const createAll = async () => {
           published_at desc
       ) content
     where
-      subsite is null
-      or subsite='pro'
+      (subsite is null or subsite='pro')
   `);
   const count = result[0].length;
   let i = 0;
@@ -198,21 +201,6 @@ const createHasParts = async (fields, postTitle) => {
       await (publish ? entry.createAndPublish() : entry.create());
       entryId = entry.sys.id;
       hasPartSysIds.push(entryId);
-    } else if (field.image) {
-      entryId = await createImageWithAttribution(
-        field.image,
-        {
-          creator: field.attribution_creator,
-          holder: field.attribution_holder,
-          license: field.attribution_license,
-          link: field.attribution_link,
-          title: field.attribution_title,
-        },
-        publish,
-      );
-      if (entryId) {
-        hasPartSysIds.push(entryId);
-      }
     } else if (field.selected_resources) {
       for (const resourceId of field.selected_resources) {
         const resource = await fetchOneContentEntry(resourceId, "resources");
@@ -231,6 +219,21 @@ const createHasParts = async (fields, postTitle) => {
         } else {
           pad.log(`[WARN] unable to get text and url for resource link`);
         }
+      }
+    } else if (field.image) {
+      entryId = await createImageWithAttribution(
+        field.image,
+        {
+          creator: field.attribution_creator,
+          holder: field.attribution_holder,
+          license: field.attribution_license,
+          link: field.attribution_link,
+          title: field.attribution_title,
+        },
+        publish,
+      );
+      if (entryId) {
+        hasPartSysIds.push(entryId);
       }
     } else {
       pad.log(`[WARN] unknown field w/ keys ${Object.keys(field)}`);
