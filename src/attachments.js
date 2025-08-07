@@ -46,7 +46,7 @@ const createAndPublish = async (id, url, title, fileName) => {
   const assetData = {
     fields: {
       // Assets may not be published without a title. Fallback to file name.
-      title: new LangMap(title || fileName),
+      title: new LangMap(title || fileName.split('/').pop()),
       file: new LangMap({
         contentType,
         fileName,

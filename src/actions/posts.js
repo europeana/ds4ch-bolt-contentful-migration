@@ -104,7 +104,11 @@ export const createOne = async (id) => {
     },
     true,
   );
-  entry.hasPart = await createHasParts(otherFields, entry.name);
+
+  const { associatedMedia, hasPart } = await createOtherFields(otherFields, entry.name);
+
+  entry.hasPart = hasPart;
+  entry.associatedMedia = associatedMedia;
 
   await entry.createAndPublish();
 
@@ -149,6 +153,7 @@ export const createAll = async () => {
       ) content
     where
       (subsite is null or subsite='pro')
+      and posttype <> 'Publication'
   `);
   const count = result[0].length;
   let i = 0;
@@ -174,76 +179,23 @@ export const cli = async (args) => {
   await mysqlClient.connection.end();
 };
 
-const createHasParts = async (fields, postTitle) => {
-  pad.log("- create post sections");
+const createOtherFields = async (fields, postTitle) => {
+  pad.log("- create fields");
   pad.increase();
 
-  const hasPartSysIds = [];
+  let hasPart = [];
+  let associatedMedia = [];
+
   for (const field of fields || []) {
-    let entryId;
-    const publish =
-      !Array.isArray(field.enabled) || field.enabled[0] === "enabled";
-
-    if (field.body) {
-      let entry;
-      const bodyPart = field.body[0];
-
-      if (/<(iframe|script)[ >]/.test(bodyPart)) {
-        entry = new EmbedEntry();
-        entry.name = `Embed for ${postTitle}`;
-        entry.embed = bodyPart;
-      } else if (bodyPart.includes("<lite-youtube ")) {
-        const videoid = bodyPart.match(/videoid="([^"]+)"/)[1];
-        entry = new EmbedEntry();
-        entry.name = `YouTube embed for ${postTitle}`;
-        entry.embed = `<iframe src="https://www.youtube.com/embed/${videoid}" title="YouTube"></iframe>`;
-      } else if (bodyPart.includes("<lite-vimeo ")) {
-        const videoid = bodyPart.match(/videoid="([^"]+)"/)[1];
-        entry = new EmbedEntry();
-        entry.name = `Vimeo embed for ${postTitle}`;
-        entry.embed = `<iframe src="https://player.vimeo.com/video/${videoid}" title="Vimeo"></iframe>`;
-      } else {
-        entry = new RichTextEntry();
-        // const text = await linkAttributesToContentful(part.content);
-        entry.text = bodyPart;
+    if (field.body || field.selected_resources || field.image) {
+      const sysId = await createHasPart(field, postTitle);
+      if (sysId) {
+        hasPart = hasPart.concat(sysId);
       }
-
-      await (publish ? entry.createAndPublish() : entry.create());
-      entryId = entry.sys.id;
-      hasPartSysIds.push(entryId);
-    } else if (field.selected_resources) {
-      for (const resourceId of field.selected_resources) {
-        const resource = await fetchOneContentEntry(resourceId, "resources");
-        const resourceData = resource.fields.find(
-          (field) => field.order === null,
-        )?.data;
-
-        const entry = new LinkEntry();
-        entry.text = resourceData?.buttontext?.[0];
-        entry.url = resourceData?.htmllink?.[0];
-
-        if (entry.text && entry.url) {
-          await (publish ? entry.createAndPublish() : entry.create());
-          entryId = entry.sys.id;
-          hasPartSysIds.push(entryId);
-        } else {
-          pad.log(`[WARN] unable to get text and url for resource link`);
-        }
-      }
-    } else if (field.image) {
-      entryId = await createImageWithAttribution(
-        field.image,
-        {
-          creator: field.attribution_creator,
-          holder: field.attribution_holder,
-          license: field.attribution_license,
-          link: field.attribution_link,
-          title: field.attribution_title,
-        },
-        publish,
-      );
-      if (entryId) {
-        hasPartSysIds.push(entryId);
+    } else if (field.singlefile) {
+      const sysId = await createAssociatedMedia(field);
+      if (sysId) {
+        associatedMedia = associatedMedia.concat(sysId);
       }
     } else {
       pad.log(`[WARN] unknown field w/ keys ${Object.keys(field)}`);
@@ -252,7 +204,110 @@ const createHasParts = async (fields, postTitle) => {
 
   pad.decrease();
 
+  return {
+    hasPart, associatedMedia
+  };
+};
+
+
+const createHasPart = async (field, postTitle) => {
+  pad.log("- create post section");
+  pad.increase();
+
+  const hasPartSysIds = [];
+
+  const publish =
+    !Array.isArray(field.enabled) || field.enabled[0] === "enabled";
+
+  if (field.body) {
+    let entry;
+    const bodyPart = field.body[0];
+
+    if (/<(iframe|script)[ >]/.test(bodyPart)) {
+      entry = new EmbedEntry();
+      entry.name = `Embed for ${postTitle}`;
+      entry.embed = bodyPart;
+    } else if (bodyPart.includes("<lite-youtube ")) {
+      const videoid = bodyPart.match(/videoid="([^"]+)"/)[1];
+      entry = new EmbedEntry();
+      entry.name = `YouTube embed for ${postTitle}`;
+      entry.embed = `<iframe src="https://www.youtube.com/embed/${videoid}" title="YouTube"></iframe>`;
+    } else if (bodyPart.includes("<lite-vimeo ")) {
+      const videoid = bodyPart.match(/videoid="([^"]+)"/)[1];
+      entry = new EmbedEntry();
+      entry.name = `Vimeo embed for ${postTitle}`;
+      entry.embed = `<iframe src="https://player.vimeo.com/video/${videoid}" title="Vimeo"></iframe>`;
+    } else {
+      entry = new RichTextEntry();
+      // const text = await linkAttributesToContentful(part.content);
+      entry.text = bodyPart;
+    }
+
+    await (publish ? entry.createAndPublish() : entry.create());
+
+    hasPartSysIds.push(entry.sys.id);
+  } else if (field.selected_resources) {
+    for (const resourceId of field.selected_resources) {
+      const resource = await fetchOneContentEntry(resourceId, "resources");
+      const resourceData = resource.fields.find(
+        (field) => field.order === null,
+      )?.data;
+
+      const entry = new LinkEntry();
+      entry.text = resourceData?.buttontext?.[0];
+      entry.url = resourceData?.htmllink?.[0];
+
+      if (entry.text && entry.url) {
+        await (publish ? entry.createAndPublish() : entry.create());
+        hasPartSysIds.push(entry.sys.id);
+      } else {
+        pad.log(`[WARN] unable to get text and url for resource link`);
+      }
+    }
+  } else if (field.image) {
+    const entryId = await createImageWithAttribution(
+      field.image,
+      {
+        creator: field.attribution_creator,
+        holder: field.attribution_holder,
+        license: field.attribution_license,
+        link: field.attribution_link,
+        title: field.attribution_title,
+      },
+      publish,
+    );
+    if (entryId) {
+      hasPartSysIds.push(entryId);
+    }
+  } else {
+    pad.log(`[WARN] ignoring field w/ keys ${Object.keys(field)}`);
+  }
+
+  pad.decrease();
+
   return hasPartSysIds;
+};
+
+const createAssociatedMedia = async (field) => {
+  pad.log("- create post associated media");
+  pad.increase();
+
+  const associatedMediaSysIds = [];
+
+  const publish =
+    !Array.isArray(field.enabled) || field.enabled[0] === "enabled";
+
+  if (field.singlefile) {
+    const filename = field.singlefile.filename || field.singlefile.file;
+    const asset = await loadOrCreateAssetForImage(filename, field.singlefile.title);
+    associatedMediaSysIds.push(asset?.sys?.id);
+  } else {
+    pad.log(`[WARN] ignoring field w/ keys ${Object.keys(field)}`);
+  }
+
+  pad.decrease();
+
+  return associatedMediaSysIds;
 };
 
 const createImageWithAttribution = async (

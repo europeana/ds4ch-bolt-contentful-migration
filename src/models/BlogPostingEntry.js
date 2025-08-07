@@ -7,6 +7,7 @@ export class BlogPostingEntry extends Entry {
 
   constructor(sys = {}) {
     super(sys);
+    this.associatedMedia = [];
     this.author = [];
     this.categories = [];
     this.hasPart = [];
@@ -14,6 +15,7 @@ export class BlogPostingEntry extends Entry {
 
   get fields() {
     return {
+      associatedMedia: this.associatedMedia ? this.linkField(this.associatedMedia, "Asset") : null,
       author: this.linkField(this.author),
       categories: this.linkField(this.categories),
       datePublished: this.dateField(this.datePublished),
@@ -25,8 +27,8 @@ export class BlogPostingEntry extends Entry {
         { max: 550 },
       ),
       name: this.shortTextField(this.name),
-      site: this.shortTextField(this.site),
       primaryImageOfPage: this.linkField(this.primaryImageOfPage),
+      site: this.shortTextField(this.site),
     };
   }
 }
