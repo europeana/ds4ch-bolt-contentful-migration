@@ -46,27 +46,44 @@ export const createOne = async (id) => {
 export const createAll = async () => {
   const result = await mysqlClient.connection.execute(`
     select
-      distinct authors.author_id
-
+      distinct author_id
     from
-      bolt_content c
-      inner join bolt_field f on c.id=f.content_id
-      inner join bolt_field_translation ft on f.id=ft.translatable_id
-      inner join JSON_TABLE(
-        ft.value,
-        '$[*]'
-        COLUMNS(
-          author_id INT PATH '$'
-        )
-      ) authors
+      (
+        select
+            authors.author_id,
+            (
+              select
+                JSON_EXTRACT(ft.value, '$[0]')
+              from
+                bolt_field f
+                inner join bolt_field_translation ft on f.id=ft.translatable_id
+              where
+                f.content_id=c.id
+                and f.name='subsite'
+            ) subsite
 
+          from
+            bolt_content c
+            inner join bolt_field f on c.id=f.content_id
+            inner join bolt_field_translation ft on f.id=ft.translatable_id
+            inner join JSON_TABLE(
+              ft.value,
+              '$[*]'
+              COLUMNS(
+                author_id INT PATH '$'
+              )
+            ) authors
+
+          where
+            c.content_type='posts'
+            and f.name='authors'
+            and authors.author_id is not null
+
+          order by
+            authors.author_id asc
+      ) content_authors
     where
-      c.content_type='posts'
-      and f.name='authors'
-      and authors.author_id is not null
-
-    order by
-      authors.author_id asc
+      subsite is null or subsite='pro'
   `);
   const count = result[0].length;
   let i = 0;
