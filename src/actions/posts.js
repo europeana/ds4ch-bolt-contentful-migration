@@ -41,29 +41,31 @@ export const createOne = async (id) => {
     const sysId = PersonEntry.sysIdFromMysqlId(authorId);
     pad.log(`- looking up person entry for author [ID=${authorId}]`);
 
-    try {
-      const personEntry = await contentfulPreviewClient.getEntry(sysId);
-      personEntries[authorId] = personEntry;
-    } catch (e) {
-      if (e.message === "The resource could not be found.") {
-        // couldn't find it; nevermind
-      } else {
-        throw e;
+    if (personEntries[authorId] === undefined) {
+      try {
+        const personEntry = await contentfulPreviewClient.getEntry(sysId);
+        personEntries[authorId] = personEntry;
+      } catch (e) {
+        if (e.message === "The resource could not be found.") {
+          personEntries[authorId] = null;
+        } else {
+          throw e;
+        }
       }
     }
 
-    if (personEntries[authorId]) {
+    if (personEntries[authorId] === null) {
+      pad.log(`  [WARN] not found`);
+    } else {
       pad.log(`  found: ${personEntries[authorId].fields.name}`);
       entry.author.push(personEntries[authorId].sys.id);
-    } else {
-      pad.log(`  [WARN] not found`);
     }
   }
 
   for (const tagSlug of post.taxonomy?.tags || []) {
     pad.log(`- looking up category entry for tag "${tagSlug}"`);
 
-    if (!categoryEntries[tagSlug]) {
+    if (categoryEntries[tagSlug] === undefined) {
       const categoryEntryResponse = await contentfulPreviewClient.getEntries({
         content_type: "category",
         "fields.identifier": tagSlug,
@@ -72,15 +74,16 @@ export const createOne = async (id) => {
       if (categoryEntryResponse.total > 0) {
         // memoised to prevent duplicate lookups
         categoryEntries[tagSlug] = categoryEntryResponse.items[0];
+      } else {
+        categoryEntries[tagSlug] = null;
       }
     }
 
-    // TODO: use object.keys, and store even when the response was empty; same for authors
-    if (categoryEntries[tagSlug]) {
+    if (categoryEntries[tagSlug] === null) {
+      pad.log(`  [WARN] not found`);
+    } else {
       pad.log(`  found: ${categoryEntries[tagSlug].fields.name}`);
       entry.categories.push(categoryEntries[tagSlug].sys.id);
-    } else {
-      pad.log(`  [WARN] not found`);
     }
   }
 
@@ -105,7 +108,10 @@ export const createOne = async (id) => {
     true,
   );
 
-  const { associatedMedia, hasPart } = await createOtherFields(otherFields, entry.name);
+  const { associatedMedia, hasPart } = await createOtherFields(
+    otherFields,
+    entry.name,
+  );
 
   entry.hasPart = hasPart;
   entry.associatedMedia = associatedMedia;
@@ -205,10 +211,10 @@ const createOtherFields = async (fields, postTitle) => {
   pad.decrease();
 
   return {
-    hasPart, associatedMedia
+    hasPart,
+    associatedMedia,
   };
 };
-
 
 const createHasPart = async (field, postTitle) => {
   pad.log("- create post section");
@@ -294,12 +300,16 @@ const createAssociatedMedia = async (field) => {
 
   const associatedMediaSysIds = [];
 
-  const publish =
-    !Array.isArray(field.enabled) || field.enabled[0] === "enabled";
+  // TODO: selectively publish asset?
+  // const publish =
+  //   !Array.isArray(field.enabled) || field.enabled[0] === "enabled";
 
   if (field.singlefile) {
     const filename = field.singlefile.filename || field.singlefile.file;
-    const asset = await loadOrCreateAssetForImage(filename, field.singlefile.title);
+    const asset = await loadOrCreateAssetForImage(
+      filename,
+      field.singlefile.title,
+    );
     associatedMediaSysIds.push(asset?.sys?.id);
   } else {
     pad.log(`[WARN] ignoring field w/ keys ${Object.keys(field)}`);

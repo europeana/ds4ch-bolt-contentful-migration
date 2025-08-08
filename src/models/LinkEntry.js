@@ -8,10 +8,10 @@ export class LinkEntry extends Entry {
   get fields() {
     // handle a few links missing scheme
     let url = this.url;
-    if (!url.includes('://')) {
-      if (url.startsWith('www.')) {
+    if (!url.includes("://")) {
+      if (url.startsWith("www.")) {
         url = `http://${url}`;
-      } else if (url.includes('@')) {
+      } else if (url.includes("@")) {
         url = `mailto://${url}`;
       }
     }
