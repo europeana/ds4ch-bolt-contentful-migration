@@ -81,6 +81,10 @@ export const rightsFromAbbreviation = (abbr) =>
   rightsAbbreviationDefinitions.find((def) => def.abbr.includes(abbr))?.rights;
 
 export const rightsFromTitle = (title) => {
+  if (!title) {
+    return undefined;
+  }
+
   // get all different rights statement abbreviations in title
   const rightsInTitle = rightsAbbreviationDefinitions.reduce((memo, def) => {
     for (const abbr of def.abbr) {
