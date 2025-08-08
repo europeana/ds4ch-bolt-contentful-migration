@@ -1,5 +1,5 @@
 import { Entry } from "./Entry.js";
-// import { rightsFromAbbreviation } from '../support/utils.js';
+import { rightsFromAbbreviation, rightsFromTitle } from "../utils.js";
 
 export class ImageWithAttributionEntry extends Entry {
   static get contentTypeId() {
@@ -28,12 +28,23 @@ export class ImageWithAttributionEntry extends Entry {
   }
 
   get fields() {
+    let title = this.name;
+    let rights = rightsFromAbbreviation(this.license?.trim());
+
+    if (!rights) {
+      const fromTitle = rightsFromTitle(this.name?.trim());
+      if (fromTitle) {
+        rights = fromTitle.rights;
+        title = fromTitle.title;
+      }
+    }
+
     return {
-      name: this.shortTextField(this.name),
+      name: this.shortTextField(title),
       image: this.image ? this.linkField(this.image, "Asset") : null,
       creator: this.shortTextField(this.creator),
       provider: this.shortTextField(this.provider),
-      license: this.shortTextField(this.license),
+      license: this.shortTextField(rights || this.license),
       url: this.longTextField(this.normaliseUrl(this.trimField(this.url))),
     };
   }

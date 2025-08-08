@@ -81,15 +81,19 @@ export const rightsFromAbbreviation = (abbr) =>
   rightsAbbreviationDefinitions.find((def) => def.abbr.includes(abbr))?.rights;
 
 export const rightsFromTitle = (title) => {
-  // count how many different rights statement abbreviations occur
+  // get all different rights statement abbreviations in title
   const rightsInTitle = rightsAbbreviationDefinitions.reduce((memo, def) => {
-    if (
-      def.abbr.some((abbr) =>
-        new RegExp(`(^|[( ])${abbr}([., )]|$)`).test(title),
-      )
-    ) {
-      memo.push(def.rights);
+    for (const abbr of def.abbr) {
+      const match = title.match(new RegExp(`(^|[( ])${abbr}([., )]|$)`));
+      if (match) {
+        memo.push({
+          rights: def.rights,
+          // rm abbr from title to avoid duplication of info
+          title: title.replace(match[0], ""),
+        });
+      }
     }
+
     return memo;
   }, []);
 

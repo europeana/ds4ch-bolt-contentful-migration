@@ -5,7 +5,7 @@ import {
   contentfulManagement,
   contentfulPreviewClient,
 } from "../config.js";
-import { pad, rightsFromAbbreviation, rightsFromTitle } from "../utils.js";
+import { pad } from "../utils.js";
 import { BlogPostingEntry } from "../models/BlogPostingEntry.js";
 import { RichTextEntry } from "../models/RichTextEntry.js";
 import { EmbedEntry } from "../models/EmbedEntry.js";
@@ -332,18 +332,13 @@ const createImageWithAttribution = async (
   }
 
   const imageTitle = attribution.title?.[0] || image.title || image.alt;
-  const imageRights =
-    rightsFromAbbreviation(attribution.license?.[0]?.trim()) ||
-    // TODO: rm from title if found here?
-    rightsFromTitle(imageTitle?.trim()) ||
-    attribution.license;
 
   const asset = await loadOrCreateAssetForImage(filename, imageTitle);
 
   const entry = new ImageWithAttributionEntry();
   entry.image = asset?.sys?.id;
   entry.name = imageTitle;
-  entry.license = imageRights;
+  entry.license = attribution.license?.[0];
   entry.creator = attribution.creator?.[0];
   entry.provider = attribution.holder?.[0];
   entry.url = attribution.link?.[0];
