@@ -6,9 +6,18 @@ export class LinkEntry extends Entry {
   }
 
   get fields() {
+    // handle a few links missing scheme
+    let url = this.url;
+    if (!url.includes('://')) {
+      if (url.startsWith('www.')) {
+        url = `http://${url}`;
+      } else if (url.includes('@')) {
+        url = `mailto://${url}`;
+      }
+    }
     return {
       text: this.shortTextField(this.text),
-      url: this.longTextField(this.url),
+      url: this.longTextField(url),
     };
   }
 }
