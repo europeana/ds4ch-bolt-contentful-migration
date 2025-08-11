@@ -122,52 +122,15 @@ export const createOne = async (id) => {
 };
 
 export const createAll = async () => {
-  const result = await mysqlClient.connection.execute(`
-    select
-      *
-    from
-      (
-        select
-          c.id,
-          (
-            select
-              JSON_EXTRACT(ft.value, '$[0]')
-            from
-              bolt_field f
-              inner join bolt_field_translation ft on f.id=ft.translatable_id
-            where
-              f.content_id=c.id
-              and f.name='posttype'
-          ) posttype,
-          (
-            select
-              JSON_EXTRACT(ft.value, '$[0]')
-            from
-              bolt_field f
-              inner join bolt_field_translation ft on f.id=ft.translatable_id
-            where
-              f.content_id=c.id
-              and f.name='subsite'
-          ) subsite
-        from
-          bolt_content c
-        where
-          content_type='posts'
-          and published_at is not null
-        order by
-          published_at desc
-      ) content
-    where
-      (subsite is null or subsite='pro')
-      and posttype <> 'Publication'
-  `);
-  const count = result[0].length;
+  const postIds = await fetchPostIds();
+  const count = postIds.length;
+
   let i = 0;
-  for (const row of result[0]) {
+  for (const id of postIds) {
     i = i + 1;
     pad.log(`Post ${i}/${count}`);
     pad.increase();
-    await createOne(row.id);
+    await createOne(id);
     pad.decrease();
   }
 };
@@ -356,6 +319,50 @@ const createImageWithAttribution = async (
   }
 
   return entry.sys.id;
+};
+
+export const fetchPostIds = async () => {
+  const result = await mysqlClient.connection.execute(`
+    select
+      id
+    from
+      (
+        select
+          c.id,
+          (
+            select
+              JSON_EXTRACT(ft.value, '$[0]')
+            from
+              bolt_field f
+              inner join bolt_field_translation ft on f.id=ft.translatable_id
+            where
+              f.content_id=c.id
+              and f.name='posttype'
+          ) posttype,
+          (
+            select
+              JSON_EXTRACT(ft.value, '$[0]')
+            from
+              bolt_field f
+              inner join bolt_field_translation ft on f.id=ft.translatable_id
+            where
+              f.content_id=c.id
+              and f.name='subsite'
+          ) subsite
+        from
+          bolt_content c
+        where
+          content_type='posts'
+          and published_at is not null
+        order by
+          published_at desc
+      ) content
+    where
+      (subsite is null or subsite='pro')
+      and posttype <> 'Publication'
+  `);
+
+  return result[0].map((row) => row.id);
 };
 
 const fetchOneContentEntry = async (id, contentType) => {
