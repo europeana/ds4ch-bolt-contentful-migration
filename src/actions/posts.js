@@ -4,9 +4,11 @@ import {
   mysqlClient,
   contentfulManagement,
   contentfulPreviewClient,
+  tags,
 } from "../config.js";
 import { pad } from "../utils.js";
 import { BlogPostingEntry } from "../models/BlogPostingEntry.js";
+import { CategoryEntry } from "../models/CategoryEntry.js";
 import { RichTextEntry } from "../models/RichTextEntry.js";
 import { EmbedEntry } from "../models/EmbedEntry.js";
 import { LinkEntry } from "../models/LinkEntry.js";
@@ -62,30 +64,56 @@ export const createOne = async (id) => {
     }
   }
 
+  pad.log("- link to categories");
+  pad.increase();
+
   for (const tagSlug of post.taxonomy?.tags || []) {
-    pad.log(`- looking up category entry for tag "${tagSlug}"`);
+    pad.log(`- tag "${tagSlug}"`);
+    pad.increase();
 
-    if (categoryEntries[tagSlug] === undefined) {
-      const categoryEntryResponse = await contentfulPreviewClient.getEntries({
-        content_type: "category",
-        "fields.identifier": tagSlug,
-      });
+    const tagCategory = tags.find(
+      (tag) => tag.identifier === tagSlug || tag.from?.includes(tag),
+    );
 
-      if (categoryEntryResponse.total > 0) {
-        // memoised to prevent duplicate lookups
-        categoryEntries[tagSlug] = categoryEntryResponse.items[0];
+    if (tagCategory) {
+      pad.log("[KEEP]");
+
+      pad.log(`- looking up category entry for tag "${tagSlug}"`);
+      pad.increase();
+
+      if (categoryEntries[tagSlug] === undefined) {
+        const categoryEntryResponse = await contentfulPreviewClient.getEntries({
+          content_type: "category",
+          "fields.identifier": tagSlug,
+        });
+
+        if (categoryEntryResponse.total > 0) {
+          // memoised to prevent duplicate lookups
+          categoryEntries[tagSlug] = categoryEntryResponse.items[0];
+          pad.log(`- found`);
+        } else {
+          // create one
+          const categoryEntry = new CategoryEntry();
+          categoryEntry.name = tagCategory.name;
+          categoryEntry.identifier = tagCategory.identifier;
+          await categoryEntry.createAndPublish();
+          categoryEntries[tagSlug] = categoryEntry;
+        }
       } else {
-        categoryEntries[tagSlug] = null;
+        pad.log(`- found`);
       }
+
+      pad.decrease();
+
+      entry.categories.push(categoryEntries[tagSlug].sys.id);
+    } else {
+      pad.log("[DROP]");
     }
 
-    if (categoryEntries[tagSlug] === null) {
-      pad.log(`  [WARN] not found`);
-    } else {
-      pad.log(`  found: ${categoryEntries[tagSlug].fields.name}`);
-      entry.categories.push(categoryEntries[tagSlug].sys.id);
-    }
+    pad.decrease();
   }
+
+  pad.decrease();
 
   // NOTE: the teaser may have had formatting via html, which is removed here
   if (coreField.teaser?.[0]) {
