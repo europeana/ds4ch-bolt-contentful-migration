@@ -294,9 +294,13 @@ const createImageWithAttribution = async (
     return null;
   }
 
-  const imageTitle = attribution.title?.[0] || image.title || image.alt;
+  const imageTitle = attribution.title?.[0] || image.title;
 
-  const asset = await loadOrCreateAssetForImage(filename, imageTitle);
+  const asset = await loadOrCreateAssetForImage(
+    filename,
+    imageTitle,
+    image.alt,
+  );
 
   const entry = new ImageWithAttributionEntry();
   entry.image = asset?.sys?.id;
@@ -354,6 +358,7 @@ export const fetchPostIds = async () => {
         where
           content_type='posts'
           and published_at is not null
+          and published_at > '2018-09-01'
         order by
           published_at desc
       ) content

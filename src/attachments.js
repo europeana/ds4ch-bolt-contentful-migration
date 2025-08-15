@@ -7,7 +7,11 @@ const fileUrl = (fileName) => {
   return `https://pro.europeana.eu/files/${fileName.replaceAll(" ", "%20")}`;
 };
 
-export const loadOrCreateAssetForImage = async (fileName, title) => {
+export const loadOrCreateAssetForImage = async (
+  fileName,
+  title,
+  description,
+) => {
   pad.log(`- asset <${fileName}>`);
   pad.increase();
   let asset;
@@ -20,7 +24,7 @@ export const loadOrCreateAssetForImage = async (fileName, title) => {
     if (asset) {
       pad.log(`[EXISTS] ${assetId}`);
     } else {
-      await createAndPublish(assetId, url, title, fileName);
+      await createAndPublish(assetId, url, title, description, fileName);
       asset = await loadAsset(assetId);
     }
   } catch (e) {
@@ -40,13 +44,14 @@ const loadAsset = async (assetId) => {
   }
 };
 
-const createAndPublish = async (id, url, title, fileName) => {
+const createAndPublish = async (id, url, title, description, fileName) => {
   const contentType = await getContentType(url);
 
   const assetData = {
     fields: {
       // Assets may not be published without a title. Fallback to file name.
       title: new LangMap(title || fileName.split("/").pop()),
+      description: new LangMap(description),
       file: new LangMap({
         contentType,
         fileName,
