@@ -86,5 +86,23 @@ export const tags = [
   { identifier: "open-access", name: "open access" },
   { identifier: "low-code-fest", name: "Low Code Fest" },
   { identifier: "ukraine", name: "Ukraine" },
+  { identifier: "climate-action", name: "Climate Action" },
+  {
+    identifier: "europeana-2019",
+    name: "Europeana 2019",
+    from: ["europeana2019"],
+  },
+  { identifier: "europeana-2022", name: "Europeana 2022" },
+  { identifier: "europeana-2025", name: "Europeana 2025" },
+  {
+    identifier: "europeanatech-2023",
+    name: "EuropeanaTech 2023",
+    from: ["europeanatech2023"],
+  },
+  { identifier: "europeana-2020", name: "Europeana 2020" },
+  { identifier: "api", name: "API" },
+  { identifier: "virtual-reality", name: "virtual reality" },
+  { identifier: "reuse", name: "reuse" },
+  { identifier: "", name: "" },
   // { identifier: "", name: "" },
 ];
