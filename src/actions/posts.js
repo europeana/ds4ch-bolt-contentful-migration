@@ -67,7 +67,9 @@ export const createOne = async (id) => {
   pad.log("- link to categories");
   pad.increase();
 
-  for (const tagSlug of post.taxonomy?.tags || []) {
+  for (const tagSlug of Object.values(post.taxonomy || {})
+    .flat()
+    .filter(Boolean)) {
     pad.log(`- tag "${tagSlug}"`);
     pad.increase();
 
