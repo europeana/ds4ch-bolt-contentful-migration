@@ -1,5 +1,6 @@
 import {
   contentfulManagement,
+  supportedLocales,
   turndownService,
   maxLengthShort,
   maxLengthLong,
@@ -7,6 +8,8 @@ import {
 import { pad, LangMap } from "../utils.js";
 
 export class Entry {
+  static TRANSLATE = true;
+
   constructor(sys = {}) {
     this.sys = sys;
   }
@@ -37,12 +40,12 @@ export class Entry {
         entry = await contentfulManagement.environment.createEntryWithId(
           this.constructor.contentTypeId,
           this.sys.id,
-          { fields: this.fields },
+          { fields: this.fields, metadata: { tags: this.tags } },
         );
       } else {
         entry = await contentfulManagement.environment.createEntry(
           this.constructor.contentTypeId,
-          { fields: this.fields },
+          { fields: this.fields, metadata: { tags: this.tags } },
         );
       }
     } catch (e) {
@@ -119,5 +122,19 @@ export class Entry {
 
   get fields() {
     return {};
+  }
+
+  get tags() {
+    if (this.constructor.TRANSLATE) {
+      return supportedLocales.map((locale) => ({
+        sys: {
+          type: "Link",
+          linkType: "Tag",
+          id: `translate.${locale}`,
+        },
+      }));
+    } else {
+      return [];
+    }
   }
 }

@@ -1,6 +1,8 @@
 import { Entry } from "./Entry.js";
 
 export class EmbedEntry extends Entry {
+  static TRANSLATE = false;
+
   static get contentTypeId() {
     return "embed";
   }
