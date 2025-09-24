@@ -1,6 +1,5 @@
 import {
   contentfulManagement,
-  supportedLocales,
   turndownService,
   maxLengthShort,
   maxLengthLong,
@@ -126,13 +125,15 @@ export class Entry {
 
   get tags() {
     if (this.constructor.TRANSLATE) {
-      return supportedLocales.map((locale) => ({
-        sys: {
-          type: "Link",
-          linkType: "Tag",
-          id: `translate.${locale}`,
+      return [
+        {
+          sys: {
+            type: "Link",
+            linkType: "Tag",
+            id: "translate",
+          },
         },
-      }));
+      ];
     } else {
       return [];
     }
