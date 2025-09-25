@@ -356,6 +356,21 @@ const createImageWithAttribution = async (
 };
 
 export const fetchPostIds = async () => {
+  let limit = "";
+  if (
+    process.env.MIGRATE_POSTS_LIMIT &&
+    Number.isInteger(Number(process.env.MIGRATE_POSTS_LIMIT))
+  ) {
+    limit = `limit ${process.env.MIGRATE_POSTS_LIMIT}`;
+  }
+  let offset = "";
+  if (
+    process.env.MIGRATE_POSTS_OFFSET &&
+    Number.isInteger(Number(process.env.MIGRATE_POSTS_OFFSET))
+  ) {
+    offset = `offset ${process.env.MIGRATE_POSTS_OFFSET}`;
+  }
+
   const result = await mysqlClient.connection.execute(`
     select
       id
@@ -395,6 +410,8 @@ export const fetchPostIds = async () => {
     where
       (subsite is null or subsite='pro')
       and posttype <> 'Publication'
+    ${limit}
+    ${offset}
   `);
 
   return result[0].map((row) => row.id);
